@@ -8,10 +8,6 @@ if (!API_KEY) {
   console.error("❌ LỖI: GEMINI_API_KEY không được cấu hình trong .env");
   throw new Error("GEMINI_API_KEY không được cấu hình trong .env");
 }
-
-/**
- * 🛠️ Hàm xử lý phản hồi JSON từ Gemini API
- */
 const parseJsonResponse = (response) => {
   try {
     if (!response?.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -25,40 +21,19 @@ const parseJsonResponse = (response) => {
     throw new Error("Không thể phân tích phản hồi JSON từ Gemini API");
   }
 };
-
-/**
- * 🚀 Hàm gọi Gemini API để sinh văn bản từ prompt
- */
-const generateText = async (prompt) => {
-  try {
-    console.log("🔹 Gửi request đến Gemini API với prompt:", prompt);
-    const response = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: prompt }] }],
-    });
-    return parseJsonResponse(response);
-  } catch (error) {
-    console.error("❌ Lỗi từ Gemini API:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-/**
- * 🎯 Hàm tạo câu hỏi từ Gemini API
- */
 const generateQuestions = async () => {
-  const prompt = `Hãy tạo đúng 3 câu hỏi lập trình với độ khó dễ để kiểm tra kiến thức cơ bản. 
-  - Hai câu đầu tiên phải là câu hỏi dạng True/False.
-  - Câu thứ ba là câu hỏi về MongoDB aggregation pipeline ở mức độ beginner, yêu cầu người chơi viết một pipeline đơn giản.
-  - Mỗi câu hỏi phải tuân theo định dạng JSON sau:
-  
-  [
-    {"cauHoi": "Nội dung câu hỏi (True/False)", "loai": "true_false", "ngayTao": "ISO 8601 format"},
-    {"cauHoi": "Nội dung câu hỏi (True/False)", "loai": "true_false", "ngayTao": "ISO 8601 format"},
-    {"cauHoi": "Nội dung câu hỏi về MongoDB pipeline", "loai": "short_answer", "ngayTao": "ISO 8601 format"}
-  ]
+  const prompt = `Hãy tạo đúng 3 câu hỏi lập trình với độ khó dễ để kiểm tra kiến thức cơ bản.
+    - Hai câu đầu tiên phải là câu hỏi dạng True/False.
+    - Câu thứ ba là câu hỏi về MongoDB aggregation pipeline ở mức độ beginner, yêu cầu người chơi viết một pipeline đơn giản.
+    - Mỗi câu hỏi phải có thêm trường "cauTraLoi".
+    - Tuân theo định dạng JSON sau:
 
-  Chỉ trả về JSON theo cấu trúc trên, không thêm nội dung nào khác.`;
-
+    [
+      {"cauHoi": "Nội dung câu hỏi 1", "loai": "true_false", "ngayTao": "ISO 8601 format", "cauTraLoi": "true hoặc false"},
+      {"cauHoi": "Nội dung câu hỏi 2", "loai": "true_false", "ngayTao": "ISO 8601 format", "cauTraLoi": "true hoặc false"},
+      {"cauHoi": "Nội dung câu hỏi 3 về MongoDB pipeline", "loai": "short_answer", "ngayTao": "ISO 8601 format", "cauTraLoi": "Câu trả lời ví dụ là một aggregation pipeline"}
+    ]
+    Chỉ trả về đúng JSON theo cấu trúc trên, không thêm nội dung nào khác.`;
   try {
     console.log("🔹 Gửi request đến Gemini API...");
     const response = await axios.post(GEMINI_API_URL, {
@@ -77,6 +52,7 @@ const generateQuestions = async () => {
         cauHoi: q.cauHoi?.trim() || `Câu hỏi ${index + 1} bị thiếu nội dung`,
         loai: q.loai || (index < 2 ? "true_false" : "short_answer"),
         ngayTao: isNaN(ngayTao) ? new Date().toISOString() : ngayTao.toISOString(),
+        cauTraLoi: q.cauTraLoi?.trim() || `Câu trả lời bị thiếu cho câu ${index + 1}`, // Add cauTraLoi
       };
     });
 
@@ -122,9 +98,7 @@ const kiemTraService = async (answerForm) => {
     const response = await axios.post(GEMINI_API_URL, {
       contents: [{ parts: [{ text: prompt }] }],
     });
-
     const jsonResponse = parseJsonResponse(response);
-
     if (
       !jsonResponse ||
       !jsonResponse.maNguoiChoi ||
@@ -138,12 +112,10 @@ const kiemTraService = async (answerForm) => {
     if (jsonResponse.ketQua.length !== answerForm.questions.length) {
       throw new Error("Số lượng kết quả từ Gemini không khớp với số câu hỏi");
     }
-
     // Log kết quả từ Gemini để kiểm tra
     const correctCount = jsonResponse.ketQua.filter((item) => item.isTrue).length;
     const totalQuestions = jsonResponse.ketQua.length;
     console.log(`✅ Kết quả từ Gemini: ${correctCount}/${totalQuestions} câu đúng, isPassed: ${jsonResponse.isPassed}`);
-
     return {
       maNguoiChoi: jsonResponse.maNguoiChoi.trim(),
       diaChiVi: jsonResponse.diaChiVi.trim(),
@@ -160,7 +132,6 @@ const kiemTraService = async (answerForm) => {
   }
 };
 module.exports = {
-  generateText,
   generateQuestions,
   kiemTraService,
 };

@@ -20,44 +20,74 @@ const createPlayerService = async (name, walletAddress, tokenBalance = 0) => {
 };
 const updateWalletWinnerService = async (name, tokenBalance) => {
     try {
-        const existingPlayer = await Player.findOne({ name });
-        if (!existingPlayer) {
-            return { success: false, message: "Không tìm thấy người chơi" };
+      const pipeline = [
+        {
+          $match: { name } 
+        },
+        {
+          $set: {
+            tokenBalance: { $add: ["$tokenBalance", tokenBalance] }
+          }
+        },
+        {
+          $merge: {
+            into: "players",
+            whenMatched: "merge",
+            whenNotMatched: "fail" 
+          }
         }
-        
-        const updatedPlayer = await Player.findOneAndUpdate(
-            { name },
-            { $inc: { tokenBalance: tokenBalance } }, // Sử dụng $inc để cộng thêm
-            { new: true } // Trả về document đã được cập nhật
-        );
-        
-        return { success: true, message: "Cập nhật số dư token thành công", data: updatedPlayer };
+      ];
+      const result = await Player.aggregate(pipeline);
+      const updatedPlayer = await Player.findOne({ name });
+      if (!updatedPlayer) {
+        return { success: false, message: "Không tìm thấy người chơi" };
+      }
+      return {
+        success: true,
+        message: "Cập nhật số dư token thành công",
+        data: updatedPlayer
+      };
     } catch (error) {
-        console.error("Lỗi khi cập nhật số dư token:", error);
-        return { success: false, message: "Lỗi máy chủ nội bộ." };
+      console.error("Lỗi khi cập nhật số dư token:", error);
+      return { success: false, message: "Lỗi máy chủ nội bộ." };
     }
 };
 const updateJobCompletionService = async (title) => {
     try {
-        const existingJob = await Job.findOne({ title });
-        if (!existingJob) {
-            return { success: false, message: "Không tìm thấy công việc" };
+      const pipeline = [
+        {
+          $match: { title } 
+        },
+        {
+          $set: { isCompleted: true } 
+        },
+        {
+          $merge: {
+            into: "jobs",               
+            whenMatched: "merge",       
+            whenNotMatched: "fail"      
+          }
         }
-        const updatedJob = await Job.findOneAndUpdate(
-            { title },
-            { isCompleted: true },
-            { new: true } 
-        );
-        return { success: true, message: "Cập nhật trạng thái công việc thành công", data: updatedJob };
+      ];
+      await Job.aggregate(pipeline);
+      const updatedJob = await Job.findOne({ title });
+      if (!updatedJob) {
+        return { success: false, message: "Không tìm thấy công việc" };
+      }
+      return {
+        success: true,
+        message: "Cập nhật trạng thái công việc thành công",
+        data: updatedJob
+      };
     } catch (error) {
-        console.error("Lỗi khi cập nhật trạng thái công việc:", error);
-        return { success: false, message: "Lỗi máy chủ nội bộ." };
+      console.error("Lỗi khi cập nhật trạng thái công việc:", error);
+      return { success: false, message: "Lỗi máy chủ nội bộ." };
     }
 };
 const getWinnerService = async () => {
     try {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Đặt thời gian bắt đầu của ngày
+        today.setHours(0, 0, 0, 0); 
 
         const results = await Result.aggregate([
             {
@@ -67,8 +97,8 @@ const getWinnerService = async () => {
             },
             {
                 $group: {
-                    _id: "$maNguoiChoi", // Nhóm theo maNguoiChoi để loại bỏ trùng lặp
-                    diaChiVi: { $first: "$diaChiVi" } // Lấy địa chỉ ví đầu tiên của người chơi
+                    _id: "$maNguoiChoi", 
+                    diaChiVi: { $first: "$diaChiVi" } 
                 }
             },
             {

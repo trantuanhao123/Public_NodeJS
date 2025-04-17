@@ -27,7 +27,6 @@ const updateWalletWinner = async (req, res) => {
         if (!data.success) {
             return res.status(404).json({ message: data.message });
         }
-
         return res.status(200).json(data);
     } catch (error) {
         console.error("Lỗi khi cập nhật số dư token:", error);
