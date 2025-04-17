@@ -1,4 +1,4 @@
-const { generateQuestions, kiemTraService, generateText, kiemTraServiceJob } = require("../services/geminiService");
+const { generateQuestions, kiemTraService, generateText } = require("../services/geminiService");
 const GeminiRequest = require("../models/geminiRequest");
 const GeminiResponse = require("../models/geminiResponse");
 const answerFormModel = require("../models/answerForm");
@@ -96,30 +96,8 @@ const kiemTraCauTraLoi = async (req, res) => {
     return res.status(500).json({ success: false, message: "Lỗi máy chủ khi kiểm tra câu trả lời." });
   }
 };
-const kiemTraCauTraLoiJob = async (req, res) => {
-  try {
-    const { userAnswer, jobAnswer } = req.body;
-
-    if (!userAnswer || !jobAnswer) {
-      return res.status(400).json({ success: false, message: "Câu trả lời hoặc đáp án chuẩn không được cung cấp." });
-    }
-
-    const geminiResult = await kiemTraServiceJob(userAnswer, jobAnswer);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        isTrue: geminiResult.isTrue,
-      },
-    });
-  } catch (error) {
-    console.error("Lỗi khi kiểm tra câu trả lời:", error?.response?.data || error.message);
-    return res.status(500).json({ success: false, message: error.message || "Lỗi máy chủ khi kiểm tra câu trả lời." });
-  }
-};
 module.exports = { 
   askGemini,
   askForQuestion,
   kiemTraCauTraLoi,
-  kiemTraCauTraLoiJob
 };

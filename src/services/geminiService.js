@@ -159,68 +159,8 @@ const kiemTraService = async (answerForm) => {
     throw error;
   }
 };
-const kiemTraServiceJob = async (userAnswer, jobAnswer) => {
-  if (!userAnswer || !jobAnswer) {
-    throw new Error("Dữ liệu đầu vào không hợp lệ: userAnswer hoặc jobAnswer bị thiếu hoặc rỗng");
-  }
-
-  if (typeof userAnswer !== 'string' || typeof jobAnswer !== 'string') {
-    throw new Error("Dữ liệu đầu vào phải là chuỗi JSON");
-  }
-  const prompt = `Câu trả lời của người chơi (MongoDB pipeline): ${userAnswer}
-  Đáp án chuẩn (MongoDB pipeline): ${jobAnswer}
-
-  Hãy so sánh hai MongoDB pipeline trên bằng cách kiểm tra xem chúng có tạo ra cùng một sample output hay không khi áp dụng trên một tập dữ liệu mẫu. Trả về JSON với cấu trúc sau:
-  \`\`\`json
-  {
-    "isTrue": <true nếu hai pipeline cho ra cùng sample output, false nếu khác>
-  }
-  \`\`\`
-  - Đầu vào là hai MongoDB pipeline.
-  - Chỉ so sánh dựa trên sample output, không cần pipeline phải giống hệt nhau về cú pháp.
-  - Trả về JSON đúng định dạng, không thêm nội dung khác.`;
- 
-
-  try {
-    console.log("🔹 Gửi request đến Gemini API để kiểm tra câu trả lời...");
-    const response = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: prompt }] }],
-    });
-
-    const jsonResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!jsonResponse) {
-      throw new Error("Không nhận được phản hồi hợp lệ từ Gemini API");
-    }
-
-    // Làm sạch phản hồi: Loại bỏ ```json, ``` và các ký tự thừa
-    const cleanedResponse = jsonResponse
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-
-    // Phân tích cú pháp JSON từ phản hồi đã làm sạch
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      throw new Error("Phản hồi từ Gemini API sau khi làm sạch vẫn không phải JSON hợp lệ: " + parseError.message);
-    }
-
-    // Kiểm tra định dạng phản hồi: Chỉ cần isTrue là boolean
-    if (typeof parsedResponse.isTrue !== "boolean") {
-      throw new Error("Phản hồi từ Gemini API không hợp lệ: Thiếu hoặc sai kiểu dữ liệu isTrue");
-    }
-
-    console.log(`✅ Kết quả kiểm tra: isTrue: ${parsedResponse.isTrue}`);
-    return parsedResponse;
-  } catch (error) {
-    console.error("❌ Lỗi kiểm tra câu trả lời:", error.response?.data || error.message);
-    throw error;
-  }
-};
 module.exports = {
   generateText,
   generateQuestions,
   kiemTraService,
-  kiemTraServiceJob
 };
