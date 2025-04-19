@@ -7,4 +7,4 @@ const answerFormSchema = new mongoose.Schema({
     answers: [{ type: String, required: true, trim: true }] // Mảng câu trả lời
 }, { timestamps: true, versionKey: false });
 
-module.exports = mongoose.model('answerForm', answerFormSchema);
+module.exports = mongoose.model('answerForm', answerFormSchema,);

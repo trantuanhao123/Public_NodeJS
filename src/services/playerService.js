@@ -1,22 +1,24 @@
 const Player= require("../models/player")
 const Result = require("../models/result");
 const Job =require("../models/job");
-const createPlayerService = async (name, walletAddress, tokenBalance = 0) => {
-    try {
-        const existingPlayer = await Player.findOne({ name });
-        if (existingPlayer) {
-            return { success: true, message: "Người chơi đã tồn tại", data: existingPlayer };
-        }
-        let result = await Player.create({
-            name,
-            walletAddress,
-            tokenBalance
-        });
-        return { success: true, data: result };
-    } catch (error) {
-        console.error("Lỗi khi tạo người chơi:", error);
-        return { success: false, message: "Lỗi máy chủ nội bộ." };
+const createPlayerService = async (playerData) => {
+  try {
+    const { name, walletAddress, tokenBalance = 0, ...rest } = playerData;
+    const existingPlayer = await Player.findOne({ name });
+    if (existingPlayer) {
+      return { success: true, message: "Người chơi đã tồn tại", data: existingPlayer };
     }
+    let result = await Player.create({
+      name,
+      walletAddress,
+      tokenBalance,
+      ...rest, // Lưu tất cả các trường tùy chỉnh
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Lỗi khi tạo người chơi:", error);
+    return { success: false, message: "Lỗi máy chủ nội bộ." };
+  }
 };
 const updateWalletWinnerService = async (name, tokenBalance) => {
     try {

@@ -1,9 +1,9 @@
 const axios = require("axios");
 require("dotenv").config();
-
+const Question = require("../models/question");
+const JSON5 = require('json5');
 const API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-const Question = require("../models/question");
 if (!API_KEY) {
   console.error("❌ LỖI: GEMINI_API_KEY không được cấu hình trong .env");
   throw new Error("GEMINI_API_KEY không được cấu hình trong .env");
@@ -63,7 +63,7 @@ const generateQuestions = async () => {
     throw error;
   }
 };
-// const kiemTraService = async (answerForm) => {
+
 //   if (!answerForm?.maNguoiChoi || !answerForm?.diaChiVi || !Array.isArray(answerForm.questions) || !Array.isArray(answerForm.answers)) {
 //     throw new Error("Dữ liệu đầu vào không hợp lệ");
 //   }
@@ -133,26 +133,19 @@ const generateQuestions = async () => {
 // };
 const checkMongoDBPipeline = (userAnswer, correctAnswer) => {
   try {
-    // Chuẩn hóa chuỗi: loại bỏ markdown, khoảng trắng thừa
+    // Chuẩn hóa chuỗi đầu vào
     const normalize = (str) =>
       str
         .replace(/```json|```/g, "")
         .replace(/\s+/g, " ")
         .trim();
 
-    // Kiểm tra đầu vào
-    if (!userAnswer || !correctAnswer) {
-      console.error("❌ Đầu vào pipeline không hợp lệ:", { userAnswer, correctAnswer });
-      return false;
-    }
-
-    // Parse JSON nếu là string
     const parse = (input) => {
       if (typeof input !== "string") return input;
       try {
-        return JSON.parse(normalize(input));
+        return JSON5.parse(normalize(input));
       } catch (e) {
-        console.error("❌ Lỗi parse JSON:", e.message, { input });
+        console.error("❌ JSON parse lỗi:", e.message);
         return null;
       }
     };
@@ -166,10 +159,7 @@ const checkMongoDBPipeline = (userAnswer, correctAnswer) => {
     }
 
     if (userPipeline.length !== correctPipeline.length) {
-      console.error("❌ Độ dài pipeline không khớp:", {
-        userLength: userPipeline.length,
-        correctLength: correctPipeline.length
-      });
+      console.error("❌ Số bước trong pipeline không khớp");
       return false;
     }
 
@@ -189,20 +179,14 @@ const checkMongoDBPipeline = (userAnswer, correctAnswer) => {
       const correctStage = sortObject(correctPipeline[i]);
 
       if (JSON.stringify(userStage) !== JSON.stringify(correctStage)) {
-        console.log("❌ Pipeline không khớp tại stage", i + 1, {
-          userStage,
-          correctStage
-        });
+        console.log("❌ Sai tại stage", i + 1);
         return false;
       }
     }
 
     return true;
   } catch (error) {
-    console.error("❌ Lỗi khi so sánh pipeline:", error.message, {
-      userAnswer,
-      correctAnswer
-    });
+    console.error("❌ Lỗi khi so sánh:", error.message);
     return false;
   }
 };

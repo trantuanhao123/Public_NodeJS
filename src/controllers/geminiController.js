@@ -34,9 +34,6 @@ const askForQuestion = async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi máy chủ khi tạo câu hỏi." });
   }
 };
-
-
-
 const kiemTraCauTraLoi = async (req, res) => {
   try {
     const { maNguoiChoi, diaChiVi, questions, answers } = req.body;
